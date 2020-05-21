@@ -241,18 +241,9 @@ public class NcTopologyController {
         changes.add(ch);
         topology.onDataTreeChanged(changes);
 
-        Thread.sleep(5000L);
+        Thread.sleep(60000L);
         System.out.println("finish conn to: "+newNode);
 
-        
-//        ListenableFuture<NetconfDeviceCapabilities> result = topology.connectNode(TopologyUtil.getNodeId(pa), nn.build());
-//        try {
-//            System.out.println("finish conn test: "+result.get());
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        } catch (ExecutionException e) {
-//            e.printStackTrace();
-//        }
     }
 
     public void testNetconfClientDispatcherImpl() throws Exception {
