@@ -244,14 +244,14 @@ public class NcTopologyController {
         changes.add(ch);
         topology.onDataTreeChanged(changes);
 
-        Thread.sleep(60000L);
+        Thread.sleep(20000L);
         System.out.println("finish conn to: "+newNode);
 
         DOMMountPoint mp = ((SealedDOMMountPointService)domMountPointService).getMountPoint("ne-node").get();
         SchemaContext schemaContext = mp.getSchemaContext();
         System.out.println(schemaContext);
 
-        new SchemaContextRef(schemaContext);
+//        new SchemaContextRef(schemaContext);
 
         Thread.sleep(60000L);
         System.out.println("finish send msg to: "+newNode);
