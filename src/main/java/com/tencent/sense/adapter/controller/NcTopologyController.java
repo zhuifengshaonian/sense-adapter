@@ -61,6 +61,8 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.Uint16;
 import org.opendaylight.yangtools.yang.common.Uint32;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
+import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNodes;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.springframework.stereotype.Controller;
 
@@ -68,6 +70,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.*;
@@ -75,6 +79,7 @@ import java.util.concurrent.*;
 import org.opendaylight.mdsal.dom.broker.DOMMountPointServiceImpl;
 import org.opendaylight.aaa.encrypt.AAAEncryptionService;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.xml.sax.SAXException;
 
 @Controller
 public class NcTopologyController {
@@ -207,7 +212,7 @@ public class NcTopologyController {
     }
 
     @RequestMapping("/hello")
-    public void testOnDataTreeChange() throws InterruptedException {
+    public void testOnDataTreeChange() throws InterruptedException, SAXException, IOException, URISyntaxException {
 
         final DataObjectModification<Node> newNode = new MockDataObjectModification();
         InstanceIdentifier.PathArgument pa = null;
@@ -251,7 +256,7 @@ public class NcTopologyController {
         SchemaContext schemaContext = mp.getSchemaContext();
         System.out.println(schemaContext);
 
-//        new SchemaContextRef(schemaContext);
+        final NormalizedNode normalizedNode = new YangTest().jsonToNormalizedNodes(schemaContext);
 
         Thread.sleep(60000L);
         System.out.println("finish send msg to: "+newNode);
