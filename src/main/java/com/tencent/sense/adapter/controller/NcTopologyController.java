@@ -3,10 +3,7 @@ package com.tencent.sense.adapter.controller;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.tencent.sense.adapter.core.SealedDOMDataBroker;
-import com.tencent.sense.adapter.core.SealedDOMTransactionChain;
-import com.tencent.sense.adapter.core.SealedDataBroker;
-import com.tencent.sense.adapter.core.SealedDataStore;
+import com.tencent.sense.adapter.core.*;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -21,9 +18,12 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.opendaylight.controller.config.threadpool.ScheduledThreadPool;
 import org.opendaylight.mdsal.binding.api.DataObjectModification;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
+import org.opendaylight.mdsal.binding.api.MountPoint;
 import org.opendaylight.mdsal.binding.api.WriteTransaction;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+import org.opendaylight.mdsal.dom.api.DOMMountPoint;
+import org.opendaylight.mdsal.dom.api.DOMMountPointService;
 import org.opendaylight.netconf.api.messages.NetconfHelloMessageAdditionalHeader;
 import org.opendaylight.netconf.client.*;
 import org.opendaylight.netconf.client.conf.NetconfClientConfiguration;
@@ -60,6 +60,8 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.Uint16;
 import org.opendaylight.yangtools.yang.common.Uint32;
+import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.springframework.stereotype.Controller;
 
 import java.io.Closeable;
@@ -112,6 +114,8 @@ public class NcTopologyController {
 
     }
 
+    private static DOMMountPointService domMountPointService = new SealedDOMMountPointService();
+
     public NcTopologyController(){
         System.out.println("xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxxxxxxxxxx");
         topology =
@@ -122,8 +126,7 @@ public class NcTopologyController {
             new ScheduledThreadPoolWrapper(8, new ThreadFactoryBuilder().build()),
             new ScheduledThreadPoolWrapper(8, new ThreadFactoryBuilder().build()),
             new SchemaRepositoryProviderImpl("default"),
-            new SealedDataBroker(),
-            new DOMMountPointServiceImpl(),
+            new SealedDataBroker(), domMountPointService,
             new AAAEncryptionService() {
               @Override
               public String encrypt(String data) {
@@ -244,6 +247,12 @@ public class NcTopologyController {
         Thread.sleep(60000L);
         System.out.println("finish conn to: "+newNode);
 
+        DOMMountPoint mp = ((SealedDOMMountPointService)domMountPointService).getMountPoint("ne-node").get();
+        SchemaContext schemaContext = mp.getSchemaContext();
+        System.out.println(schemaContext);
+
+        Thread.sleep(600000L);
+        System.out.println("finish send msg to: "+newNode);
     }
 
     public void testNetconfClientDispatcherImpl() throws Exception {

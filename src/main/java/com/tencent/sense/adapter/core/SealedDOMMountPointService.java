@@ -11,44 +11,39 @@ import org.opendaylight.mdsal.dom.api.DOMMountPoint;
 import org.opendaylight.mdsal.dom.api.DOMMountPointListener;
 import org.opendaylight.mdsal.dom.api.DOMMountPointService;
 import org.opendaylight.mdsal.dom.api.DOMService;
+import org.opendaylight.mdsal.dom.broker.DOMMountPointServiceImpl;
 import org.opendaylight.yangtools.concepts.ListenerRegistration;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-public class SealedDOMMountPointService implements DOMMountPointService {
-  @Override
-  public Optional<DOMMountPoint> getMountPoint(YangInstanceIdentifier path) {
-    DOMMountPoint mountPoint =
-        new DOMMountPoint() {
-          @Override
-          public YangInstanceIdentifier getIdentifier() {
-            return path;
-          }
+public class SealedDOMMountPointService extends DOMMountPointServiceImpl{
 
-          @Override
-          public <T extends DOMService> Optional<T> getService(Class<T> cls) {
-            return Optional.of(null);
-          }
+    private static Map<String, YangInstanceIdentifier> temp = new HashMap<String, YangInstanceIdentifier>(10);
 
-          @Override
-          public SchemaContext getSchemaContext() {
-            return null;
-          }
-        };
+    @Override
+    public Optional<DOMMountPoint> getMountPoint(YangInstanceIdentifier path) {
+        System.out.println("getmp: "+path);
+        return super.getMountPoint(path);
+    }
 
-    return Optional.empty();
-  }
+    @Override
+    public DOMMountPointBuilder createMountPoint(YangInstanceIdentifier path) {
+        System.out.println("createmp: "+path);
+        temp.put(((YangInstanceIdentifier.NodeIdentifierWithPredicates.Singleton)(path.getPathArguments().get(4))).values().toArray()[0].toString(), path);
+        return super.createMountPoint(path);
+    }
 
-  @Override
-  public DOMMountPointBuilder createMountPoint(YangInstanceIdentifier path) {
-    return null;
-  }
+    @Override
+    public ListenerRegistration<DOMMountPointListener> registerProvisionListener(DOMMountPointListener listener) {
+        System.out.println("reg listener: "+listener);
+        return super.registerProvisionListener(listener);
+    }
 
-  @Override
-  public ListenerRegistration<DOMMountPointListener> registerProvisionListener(
-      DOMMountPointListener listener) {
-    return null;
-  }
+    public Optional<DOMMountPoint> getMountPoint(String shortName) {
+        return this.getMountPoint(temp.get(shortName));
+    }
 }
