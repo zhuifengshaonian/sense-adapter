@@ -251,7 +251,9 @@ public class NcTopologyController {
         SchemaContext schemaContext = mp.getSchemaContext();
         System.out.println(schemaContext);
 
-        Thread.sleep(600000L);
+        new SchemaContextRef(schemaContext);
+
+        Thread.sleep(60000L);
         System.out.println("finish send msg to: "+newNode);
     }
 
