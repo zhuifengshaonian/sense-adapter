@@ -37,6 +37,14 @@
             <groupId>org.opendaylight.netconf</groupId>
             <artifactId>netconf-topology</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.opendaylight.netconf</groupId>
+            <artifactId>restconf-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.opendaylight.netconf</groupId>
+            <artifactId>restconf-nb-rfc8040</artifactId>
+        </dependency>
         <!--sal to be removed-->
         <dependency>
             <groupId>org.opendaylight.mdsal</groupId>

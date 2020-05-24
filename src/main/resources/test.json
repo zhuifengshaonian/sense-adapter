@@ -1,0 +1,11 @@
+{
+  "openconfig-interfaces:interfaces": {
+    "interface": [{
+      "name": "demointf1"
+    },
+      {
+        "name": "demointf2"
+      }
+    ]
+  }
+}

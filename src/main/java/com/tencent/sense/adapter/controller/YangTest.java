@@ -5,28 +5,33 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 
+import org.opendaylight.mdsal.dom.api.DOMMountPoint;
 import org.opendaylight.yangtools.util.xml.UntrustedXML;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
+import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JSONCodecFactorySupplier;
-import org.opendaylight.yangtools.yang.data.codec.gson.JSONNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.codec.gson.JsonParserStream;
-import org.opendaylight.yangtools.yang.data.codec.gson.JsonWriterFactory;
 import org.opendaylight.yangtools.yang.data.codec.xml.XMLStreamNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
-import org.opendaylight.yangtools.yang.model.api.ContainerSchemaNode;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.data.util.DataSchemaContextNode;
+import org.opendaylight.yangtools.yang.data.util.DataSchemaContextTree;
+import org.opendaylight.yangtools.yang.model.api.*;
 import org.opendaylight.yangtools.yang.model.util.SchemaContextUtil;
 import org.opendaylight.yangtools.yang.test.util.YangParserTestUtils;
+import org.opendaylight.yangtools.yang.xpath.antlr.instanceIdentifierParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+
+import org.opendaylight.restconf.common.context.InstanceIdentifierContext;
+
+import org.opendaylight.restconf.nb.rfc8040.utils.parser.IdentifierCodec;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
@@ -40,6 +45,8 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 
 public class YangTest {
 
@@ -94,22 +101,27 @@ public class YangTest {
     public NormalizedNode jsonToNormalizedNodes(SchemaContext schemaContext) throws IOException, URISyntaxException, SAXException {
 
         //json转NormalizedNode
-
-        schemaContext.getModules().forEach(System.out::println);
         System.out.println("<--------------->");
         NormalizedNodeResult result = new NormalizedNodeResult();
         NormalizedNodeStreamWriter streamWriter = ImmutableNormalizedNodeStreamWriter.from(result);
+
+        InstanceIdentifierContext<?> instanceIdentifierContext = this.buildInstanceIdentifierContext("openconfig-interfaces:interfaces", schemaContext);
+
         JsonParserStream jsonParser = JsonParserStream.create(streamWriter,
                 JSONCodecFactorySupplier.DRAFT_LHOTKA_NETMOD_YANG_JSON_02.getShared(schemaContext));
 
         System.out.println(JSONCodecFactorySupplier.DRAFT_LHOTKA_NETMOD_YANG_JSON_02.getShared(schemaContext));
 
-        String inputJson = loadTextFile("/test/test.json");
+        String inputJson = loadTextFile("/test.json");
 
         System.out.println(inputJson);
 
-        jsonParser.parse(new JsonReader(new StringReader(inputJson)));
-        NormalizedNode<?, ?> transformedInput = result.getResult();
+//        jsonParser.parse(new JsonReader(new StringReader(inputJson)));
+//        NormalizedNode<?, ?> transformedInput = result.getResult();
+
+        InputStream entityStream = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8));
+
+        NormalizedNode<?, ?> transformedInput = readFrom(instanceIdentifierContext, entityStream, false);
 
         System.out.println("NormalizedNode:"+transformedInput);
 
@@ -130,6 +142,62 @@ public class YangTest {
 //
 //        System.out.println("序列化json"+serializedJson.toString());//序列化之后的json
 //        System.out.println("原有json"+inputJson);//原有json
+
+    }
+
+    public NormalizedNode<?, ?> readFrom(
+            final InstanceIdentifierContext<?> path, InputStream entityStream, final boolean isPost) {
+
+        final NormalizedNodeResult resultHolder = new NormalizedNodeResult();
+        final NormalizedNodeStreamWriter writer = ImmutableNormalizedNodeStreamWriter.from(resultHolder);
+
+        final SchemaNode parentSchema;
+        if (isPost) {
+            parentSchema = path.getSchemaNode();
+        } else if (path.getSchemaNode() instanceof SchemaContext) {
+            parentSchema = path.getSchemaContext();
+        } else {
+            if (SchemaPath.ROOT.equals(path.getSchemaNode().getPath().getParent())) {
+                parentSchema = path.getSchemaContext();
+            } else {
+                parentSchema = SchemaContextUtil
+                        .findDataSchemaNode(path.getSchemaContext(), path.getSchemaNode().getPath().getParent());
+            }
+        }
+
+        final JsonParserStream jsonParser = JsonParserStream.create(writer,
+                JSONCodecFactorySupplier.RFC7951.getShared(path.getSchemaContext()), parentSchema);
+        System.out.println("jsonParser:"+jsonParser);
+
+        final JsonReader reader = new JsonReader(new InputStreamReader(entityStream));
+        jsonParser.parse(reader);
+
+        NormalizedNode<?, ?> result = resultHolder.getResult();
+        System.out.println("result:"+result);
+
+        return result;
+    }
+
+    public InstanceIdentifierContext<?> buildInstanceIdentifierContext(final String identifier,
+                                                                       final SchemaContext schemaContext) {
+
+        YangInstanceIdentifier deserialize = IdentifierCodec.deserialize(identifier, schemaContext);
+        DataSchemaContextNode<?> child = DataSchemaContextTree.from(schemaContext).getChild(deserialize);
+        if (child != null) {
+            return new InstanceIdentifierContext(deserialize, child.getDataSchemaNode(), (DOMMountPoint) null, schemaContext);
+        } else {
+            QName rpcQName = deserialize.getLastPathArgument().getNodeType();
+            RpcDefinition def = null;
+
+            for(RpcDefinition rpcDefinition : schemaContext.findModule(rpcQName.getModule()).get().getRpcs()) {
+                if (rpcDefinition.getQName().getLocalName().equals(rpcQName.getLocalName())) {
+                    def = rpcDefinition;
+                    break;
+                }
+            }
+
+            return new InstanceIdentifierContext(deserialize, def, (DOMMountPoint) null, schemaContext);
+        }
 
     }
 

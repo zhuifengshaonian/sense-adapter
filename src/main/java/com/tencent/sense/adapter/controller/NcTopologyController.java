@@ -249,7 +249,7 @@ public class NcTopologyController {
         changes.add(ch);
         topology.onDataTreeChanged(changes);
 
-        Thread.sleep(20000L);
+        Thread.sleep(30000L);
         System.out.println("finish conn to: "+newNode);
 
         DOMMountPoint mp = ((SealedDOMMountPointService)domMountPointService).getMountPoint("ne-node").get();
@@ -257,9 +257,9 @@ public class NcTopologyController {
         System.out.println(schemaContext);
 
         final NormalizedNode normalizedNode = new YangTest().jsonToNormalizedNodes(schemaContext);
-
+        System.out.println("decode json to: "+normalizedNode);
         Thread.sleep(60000L);
-        System.out.println("finish send msg to: "+newNode);
+
     }
 
     public void testNetconfClientDispatcherImpl() throws Exception {
